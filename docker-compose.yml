@@ -1,0 +1,52 @@
+services:
+  postgres-hub:
+    image: postgres:${POSTGRES_TAG}
+    container_name: postgres-hub
+    restart: always
+    shm_size: "128mb"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - postgres-hub-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:${PGADMIN_TAG}
+    container_name: pgadmin
+    ports:
+      - "${PGADMIN_PORT}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres-hub:
+        condition: service_healthy
+
+networks:
+  postgres-hub-network:
+    external: true
+
+volumes:
+  pgadmin-data:
+    name: pgadmin-data
+    driver: local
+  postgres-data:
+    name: postgres-data
+    driver: local
